@@ -3,7 +3,8 @@
 #pragma once
 #include <glad/glad.h>
 #include <SDL2/SDL.h>
-#include <output.hpp>
+
+#include "common.h"
 
 class Canvas{
 private:
@@ -11,18 +12,22 @@ private:
     SDL_GLContext context;
     SDL_Window *window;
     SDL_Event event;
+    
+    unsigned short screen_x = 640;
+    unsigned short screen_y = 480;
+
+    glm::vec2 screen = glm::vec2(640.0, 480.0);
 
     //----------------------------------------------------------------------
-    void draw_objects(){
-        
-    }
-
 
 public:
+
+    Input input;
+    //----------------------------------------------------------------------
+    float get_x(){ return this->screen.x; }
+    float get_y(){ return this->screen.y; }
     //----------------------------------------------------------------------
     Canvas(){ // window & context creation
-        int window_x = 640;
-        int window_y = 480;
 
         // https://wiki.libsdl.org/SDL_Init#Remarks
         SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER);
@@ -32,17 +37,21 @@ public:
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
         SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-        //SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24); // default 16 bits // ???
+        SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24); // default 16 bits // ???
 
-        window = SDL_CreateWindow("Object Loader", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,window_x,window_y, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1); // anti-aliasing
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+
+        window = SDL_CreateWindow("Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,screen_x,screen_y, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
         if(!window) printf("Window was not created: %s\n", SDL_GetError());
         context = SDL_GL_CreateContext(window); // openGL container/renderer
 
         if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) printf("Failed to initialize GLAD\n");
 
         SDL_GL_SetSwapInterval(1); // turn on vsync
-        glEnable(GL_DEPTH_TEST); 
-        glViewport(0,0,640,480);
+        glEnable(GL_DEPTH_TEST); // 3D
+        glEnable(GL_MULTISAMPLE); // anti-aliasing
+        glViewport(0,0,screen.x, screen.y);
         
         
         // successfuly created a window
@@ -52,21 +61,66 @@ public:
     //----------------------------------------------------------------------
     // return "true" if QUIT
     bool handle_events(){
-        SDL_PollEvent(&event);
+        
+        this->input.mouse_delta.x = 0;
+        this->input.mouse_delta.y = 0;
+        this->input.mouse_wheel = 0;
 
-        // get clicks // move user input to display class
+        while(SDL_PollEvent(&event)){
+            // get clicks // move user input to display class
+            if(event.type == SDL_WINDOWEVENT){
+                if(event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED){
+                    this->screen.x = event.window.data1;
+                    this->screen.y = event.window.data2;
+                    glViewport(0,0,this->screen.x, this->screen.y);
+                }   
+                
+            }
+
+            if(event.type == SDL_KEYDOWN){
+                if(event.key.keysym.sym == 'w') this->input.w = true;
+                if(event.key.keysym.sym == 'a') this->input.a = true;
+                if(event.key.keysym.sym == 's') this->input.s = true;
+                if(event.key.keysym.sym == 'd') this->input.d = true;
+            }
+
+            if(event.type == SDL_KEYUP){
+                if(event.key.keysym.sym == 'w') this->input.w = false;
+                if(event.key.keysym.sym == 'a') this->input.a = false;
+                if(event.key.keysym.sym == 's') this->input.s = false;
+                if(event.key.keysym.sym == 'd') this->input.d = false;
+            }
+
+
+            if(event.type == SDL_MOUSEMOTION){
+                this->input.mouse_delta.x = event.motion.xrel;
+                this->input.mouse_delta.y = event.motion.yrel;
+            }
+
+
+            if(event.type == SDL_MOUSEBUTTONDOWN){
+                if(event.button.button == SDL_BUTTON_LEFT) this->input.mouse_left = true;
+                if(event.button.button == SDL_BUTTON_MIDDLE) this->input.mouse_middle = true;
+                if(event.button.button == SDL_BUTTON_RIGHT) this->input.mouse_right = true;
+            }
+
+            if(event.type == SDL_MOUSEBUTTONUP){
+                if(event.button.button == SDL_BUTTON_LEFT) this->input.mouse_left = false;
+                if(event.button.button == SDL_BUTTON_MIDDLE) this->input.mouse_middle = false;
+                if(event.button.button == SDL_BUTTON_RIGHT) this->input.mouse_right = false;
+            }
+
+            if(event.type == SDL_MOUSEWHEEL){
+                this->input.mouse_wheel = event.wheel.y;
+            }
+            
+        }
 
         return event.type == SDL_QUIT;
     }
 
     //----------------------------------------------------------------------
-    void handle_draw(){
-        glClearColor(0 , .6 , .5, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        //glDrawArrays(GL_TRIANGLES, 0, 3);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
+    void swap_window(){
         SDL_GL_SwapWindow(window);
     }
 

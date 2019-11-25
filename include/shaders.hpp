@@ -1,14 +1,18 @@
 #pragma once
 #include <glad/glad.h>
 #include <SDL2/SDL.h>
-#include <output.hpp>
 
+#include "common.h"
+#include "output.hpp"
+
+/*
 #include <GLM/glm.hpp>
 //#include <GLM/gtc/type_ptr.hpp>
 
 #include <iostream>
 #include <fstream>
 #include <sstream>
+*/
 
 class Shader_program{
 private:
