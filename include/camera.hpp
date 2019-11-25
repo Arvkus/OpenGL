@@ -42,8 +42,8 @@ public:
 
     float speed = .1;
     float distance = 10;
-    int pitch = -180; // vertical (rotate on X)
-    int yaw   = 80; // horizontal (rotate on Y)
+    int pitch = 45; // vertical (rotate on X)
+    int yaw   = 45; // horizontal (rotate on Y)
     int roll  = 0;
 
     //----------------------------------------------

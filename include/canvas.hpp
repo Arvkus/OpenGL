@@ -12,11 +12,8 @@ private:
     SDL_GLContext context;
     SDL_Window *window;
     SDL_Event event;
-    
-    unsigned short screen_x = 640;
-    unsigned short screen_y = 480;
 
-    glm::vec2 screen = glm::vec2(640.0, 480.0);
+    glm::vec2 screen = glm::vec2(1280.0, 720.0);
 
     //----------------------------------------------------------------------
 
@@ -42,7 +39,7 @@ public:
         SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1); // anti-aliasing
         SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
 
-        window = SDL_CreateWindow("Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,screen_x,screen_y, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+        window = SDL_CreateWindow("Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,screen.x,screen.y, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
         if(!window) printf("Window was not created: %s\n", SDL_GetError());
         context = SDL_GL_CreateContext(window); // openGL container/renderer
 

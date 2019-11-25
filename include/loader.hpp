@@ -2,6 +2,7 @@
 #include <json/json.hpp>
 #include "common.h"
 #include "model.hpp"
+
 // https://wiki.fileformat.com/3d/glb/
 // https://github.com/KhronosGroup/glTF/tree/master/specification/2.0
 //------------------------------------------------------------------------------
@@ -75,7 +76,7 @@ namespace Loader{
             // buffer - binary byte data
             // data - json information
 
-            for(json node : (*Loader::file_data)["nodes"]){
+            for(json node : (*Loader::file_data)["nodes"]){ // skipping scene
                 if(node.find("mesh") == node.end()) continue; // skip nodes without mesh
                 unsigned short index_mesh = node["mesh"];
 
@@ -97,11 +98,24 @@ namespace Loader{
                 //----------------------------------------------------
                 // construct Mesh/Node information
                 //----------------------------------------------------
+                if( (*Loader::file_data)["meshes"][index_mesh].find("name") != (*Loader::file_data)["meshes"][index_mesh].end() ){
+                    mesh.name = (*Loader::file_data)["meshes"][index_mesh]["name"];
+                }
 
                 if(node.find("translation") != node.end()){
-                    mesh.translation.x = node["translation"][0];
-                    mesh.translation.y = node["translation"][1];
-                    mesh.translation.z = node["translation"][2];
+                    mesh.position = glm::vec3(
+                        node["translation"][0],
+                        node["translation"][1],
+                        node["translation"][2]
+                    );
+                }
+
+                if(node.find("scale") != node.end()){
+                    mesh.size = glm::vec3(
+                        node["scale"][0],
+                        node["scale"][1],
+                        node["scale"][2]
+                    );
                 }
 
                 //----------------------------------------------------
@@ -170,6 +184,27 @@ namespace Loader{
         }
 
         //----------------------------------------------------------------------
+
+        void build_node_tree(json list){
+            
+
+            for(int node_id : list){
+                json node = (*Loader::file_data)["nodes"][node_id];
+
+                if(node.find("mesh") != node.end()){
+                    json mesh = (*Loader::file_data)["meshes"][ (int)node["mesh"] ];
+                    std::cout<<node_id<<" ";
+
+                    if(mesh.find("children") != mesh.end()){
+                        build_node_tree(mesh["children"]);
+                    }
+                }
+  
+                
+            }
+            std::cout<<std::endl;
+
+        }
 
     }//-------------------------------------------------------------------------
     //--------------------------------------------------------------------------
@@ -250,6 +285,10 @@ namespace Loader{
 
             Model model = Model();
             Loader::build_meshes(&model);
+
+            // iterate through node list scene is the ROOT node
+            Loader::build_node_tree( (*Loader::file_data)["scenes"][0]["nodes"] );
+
             std::cout<<"Model ("<< path << ") is built successfully. \n";
 
             // free space
