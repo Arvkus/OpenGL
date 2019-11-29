@@ -71,15 +71,20 @@ namespace Loader{
         }
 
         //----------------------------------------------------------------------
-        void build_meshes(Model *model){
+        void build_meshes(std::vector<Mesh> *container, json list){
             // PROCESS ALL THE DATA
             // buffer - binary byte data
             // data - json information
 
-            for(json node : (*Loader::file_data)["nodes"]){ // skipping scene
+            for(int node_id : list){
+                json node = (*Loader::file_data)["nodes"][node_id];
+
+                // if node without mesh can have children with mesh then children wont be included
                 if(node.find("mesh") == node.end()) continue; // skip nodes without mesh
+
                 unsigned short index_mesh = node["mesh"];
 
+                // loop through all primitives TODO
                 json primitives = (*Loader::file_data)["meshes"][index_mesh]["primitives"][0];
 
                 unsigned short index_position = primitives["attributes"]["POSITION"]; // 4
@@ -94,29 +99,6 @@ namespace Loader{
                 std::vector<glm::vec3> positions;
                 std::vector<glm::vec3> normals;
                 std::vector<glm::vec2> texcoords;
-
-                //----------------------------------------------------
-                // construct Mesh/Node information
-                //----------------------------------------------------
-                if( (*Loader::file_data)["meshes"][index_mesh].find("name") != (*Loader::file_data)["meshes"][index_mesh].end() ){
-                    mesh.name = (*Loader::file_data)["meshes"][index_mesh]["name"];
-                }
-
-                if(node.find("translation") != node.end()){
-                    mesh.position = glm::vec3(
-                        node["translation"][0],
-                        node["translation"][1],
-                        node["translation"][2]
-                    );
-                }
-
-                if(node.find("scale") != node.end()){
-                    mesh.size = glm::vec3(
-                        node["scale"][0],
-                        node["scale"][1],
-                        node["scale"][2]
-                    );
-                }
 
                 //----------------------------------------------------
                 // construct mesh primitives from buffer
@@ -152,8 +134,17 @@ namespace Loader{
                     std::memcpy(&ind, (file_buffer + offset + i*1*2), 1*2);
                     mesh.indices.push_back(ind);
                 }
+
                 //----------------------------------------------------
-                // debug
+                // construct vertices
+                if(positions.size() == normals.size() && normals.size() == texcoords.size()){
+                    for(unsigned int i = 0; i < positions.size(); i++){
+                        mesh.vertices.push_back( Vertex(positions[i], normals[i], texcoords[i]));
+                    }
+                }else{
+                    throw std::runtime_error("Vertex primitive data length is not equal.");
+                }
+                // end of primitives loop
                 /*
                 for(unsigned int i = 0; i < positions.size(); i++) printm(positions[i]);
                 std::cout<<std::endl;
@@ -164,47 +155,55 @@ namespace Loader{
                 for(unsigned int i = 0; i < mesh.indices.size(); i++) std::cout<<mesh.indices[i]<<" ";
                 std::cout<<std::endl;
                 */
+
                 //----------------------------------------------------
-                // construct vertices
-                if(positions.size() == normals.size() && normals.size() == texcoords.size()){
-                    for(unsigned int i = 0; i < positions.size(); i++){
-                        mesh.vertices.push_back( Vertex(positions[i], normals[i], texcoords[i]));
-                    }
-                }else{
-                    throw std::runtime_error("Vertex primitive data length is not equal.");
+                // construct Mesh/Node information
+                //----------------------------------------------------
+
+                if( (*Loader::file_data)["meshes"][index_mesh].find("name") != (*Loader::file_data)["meshes"][index_mesh].end() ){
+                    mesh.name = (*Loader::file_data)["meshes"][index_mesh]["name"]; // get name
+                }
+
+                if(node.find("translation") != node.end()){
+                    mesh.position( glm::vec3(
+                        node["translation"][0],
+                        node["translation"][1],
+                        node["translation"][2]
+                    ) );
+                }
+
+                if(node.find("scale") != node.end()){
+                    mesh.size( glm::vec3(
+                        node["scale"][0],
+                        node["scale"][1],
+                        node["scale"][2]
+                    ) );
+                }
+
+                if(node.find("rotation") != node.end()){
+                    mesh.quaternion( glm::quat(
+                        node["rotation"][3],
+                        node["rotation"][0],
+                        node["rotation"][1],
+                        node["rotation"][2]
+                    ) );
                 }
 
                 //----------------------------------------------------
-          
+                // check children
+                if(node.find("children") != node.end()){
+                    build_meshes(&(mesh.children) ,node["children"]);
+                }
+
                 mesh.setupMesh();
-                model->meshes.push_back(mesh);
+                (*container).push_back(mesh);
+
 
             }
 
         }
 
         //----------------------------------------------------------------------
-
-        void build_node_tree(json list){
-            
-
-            for(int node_id : list){
-                json node = (*Loader::file_data)["nodes"][node_id];
-
-                if(node.find("mesh") != node.end()){
-                    json mesh = (*Loader::file_data)["meshes"][ (int)node["mesh"] ];
-                    std::cout<<node_id<<" ";
-
-                    if(mesh.find("children") != mesh.end()){
-                        build_node_tree(mesh["children"]);
-                    }
-                }
-  
-                
-            }
-            std::cout<<std::endl;
-
-        }
 
     }//-------------------------------------------------------------------------
     //--------------------------------------------------------------------------
@@ -284,10 +283,9 @@ namespace Loader{
             Loader::file_buffer = buffer;
 
             Model model = Model();
-            Loader::build_meshes(&model);
+            Loader::build_meshes(&model.meshes, data["scenes"][0]["nodes"]);
 
             // iterate through node list scene is the ROOT node
-            Loader::build_node_tree( (*Loader::file_data)["scenes"][0]["nodes"] );
 
             std::cout<<"Model ("<< path << ") is built successfully. \n";
 

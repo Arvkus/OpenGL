@@ -52,6 +52,8 @@ public:
 
     glm::mat4 cframe(){
         //std::cout<<pitch<< " " << yaw << " \n";
+        printm(calculate_cframe());
+
         return calculate_cframe();
     }
 

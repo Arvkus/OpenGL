@@ -63,6 +63,10 @@ public:
         this->input.mouse_delta.y = 0;
         this->input.mouse_wheel = 0;
 
+        this->input.click_right = false;
+        this->input.click_left = false;
+        this->input.click_middle = false;
+
         while(SDL_PollEvent(&event)){
             // get clicks // move user input to display class
             if(event.type == SDL_WINDOWEVENT){
@@ -92,19 +96,31 @@ public:
             if(event.type == SDL_MOUSEMOTION){
                 this->input.mouse_delta.x = event.motion.xrel;
                 this->input.mouse_delta.y = event.motion.yrel;
+                
+                this->input.mouse_position = glm::vec2(event.button.x, event.button.y);
             }
 
 
             if(event.type == SDL_MOUSEBUTTONDOWN){
-                if(event.button.button == SDL_BUTTON_LEFT) this->input.mouse_left = true;
-                if(event.button.button == SDL_BUTTON_MIDDLE) this->input.mouse_middle = true;
-                if(event.button.button == SDL_BUTTON_RIGHT) this->input.mouse_right = true;
+                if(event.button.button == SDL_BUTTON_LEFT){
+                    this->input.click_left = true;
+                    this->input.hold_left = true;
+                }
+                if(event.button.button == SDL_BUTTON_MIDDLE){
+                     this->input.hold_middle = true;
+                     this->input.click_middle = true;
+                }
+                if(event.button.button == SDL_BUTTON_RIGHT){
+                    this->input.hold_right = true;
+                    this->input.click_right = true;
+                }
+                this->input.mouse_position = glm::vec2(event.button.x, event.button.y);
             }
 
             if(event.type == SDL_MOUSEBUTTONUP){
-                if(event.button.button == SDL_BUTTON_LEFT) this->input.mouse_left = false;
-                if(event.button.button == SDL_BUTTON_MIDDLE) this->input.mouse_middle = false;
-                if(event.button.button == SDL_BUTTON_RIGHT) this->input.mouse_right = false;
+                if(event.button.button == SDL_BUTTON_LEFT) this->input.hold_left = false;
+                if(event.button.button == SDL_BUTTON_MIDDLE) this->input.hold_middle = false;
+                if(event.button.button == SDL_BUTTON_RIGHT) this->input.hold_right = false;
             }
 
             if(event.type == SDL_MOUSEWHEEL){
@@ -121,5 +137,8 @@ public:
         SDL_GL_SwapWindow(window);
     }
 
+    glm::vec2 get_screen_size(){
+        return this->screen;
+    }
     //----------------------------------------------------------------------
 };

@@ -15,12 +15,11 @@ void main(){
     normal = a_normal;
     position = a_position;
     texture = a_texture;
-    
-    //vertex_pos = vec3(model * vec4(a_position, 1.0)); // vertex position in world space
 
-    float x = a_position.x;
-    float y = a_position.y;
-    float z = a_position.z;
-    gl_Position = projection * view * model * vec4(x,y,z, 1.0);
+    mat3 rotation = mat3(model); // get only rotation
+    normal = rotation * a_normal; // rotate current normal
+    normal = normal / length(normal); // get rid of scaling
+
+    gl_Position = projection * view * model * vec4(a_position, 1.0);
     
 }

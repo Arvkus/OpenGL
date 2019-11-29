@@ -18,6 +18,7 @@ class Shader_program{
 private:
     //----------------------------------------------------------------------
     unsigned int program;
+    bool error = false;
 
     //----------------------------------------------------------------------
     void shader_source( unsigned int &shader, const char* path){
@@ -50,6 +51,7 @@ private:
             }else{
                 glGetShaderInfoLog(object, 1024, NULL, info);
                 std::cout<<"SHADER::"<<type<<"::COMPILE_FAIL: \n"<< info <<std::endl;
+                error = true;
             }
 
         }else if(type == "PROGRAM"){
@@ -59,11 +61,16 @@ private:
             }else{
                 glGetProgramInfoLog(object, 1024, NULL, info);
                 std::cout<<"SHADER::"<<type<<"::LINK_FAIL: \n"<< info <<std::endl;
+                error = true;
             }
         }
     }
 
 public:
+
+    bool get_error(){
+        return this->error;
+    }
     //----------------------------------------------------------------------
     Shader_program(){
 
@@ -93,6 +100,13 @@ public:
         //delete unnecesary
         glDeleteShader(vertex);
         glDeleteShader(fragment);
+
+        if(this->error){
+            std::cout<<"Shader program error pause... ";
+            std::cin.get();
+        } 
+
+        std::cout<<std::endl;
     }   
 
     ~Shader_program(){

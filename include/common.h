@@ -14,6 +14,7 @@ typedef float  f32;
 typedef double f64;
 
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <sstream>
 
@@ -26,9 +27,11 @@ typedef double f64;
 //#include <functional>
 #include <algorithm>
 #include <typeinfo>
+//#include <bits/stdc++.h> 
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 #include "utilities.hpp"
 
