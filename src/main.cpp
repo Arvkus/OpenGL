@@ -65,22 +65,8 @@ int main(int argc, char *argv[]) {
     };
 
     
-    Model cursor = Loader::model_from_glb("models/crate.glb");
-    Model cube = Loader::model_from_glb("models/cube.glb");
-    Model car = Loader::model_from_glb("models/car.glb");
-
     Model complex = Loader::model_from_glb("models/complex.glb");
-   
 
-    car.size( glm::vec3(.2,.2,.2) );
-
-    cursor.size( glm::vec3(.2,.2,.2) );
-    complex.position( glm::vec3(0,0,10) );
-    /*
-    cube.size( glm::vec3(.6,1.5,.7) );
-    cube.position( glm::vec3(0,0,0) ); 
-    cube.rotation( glm::vec3(0,45,45) );
-    */
 
     //----------------------------------------------
     glm::mat4 proj = glm::mat4(1.0);
@@ -90,7 +76,6 @@ int main(int argc, char *argv[]) {
 
     glm::vec3 angle(0.0);
 
-    Game game = Game(&car, &(canvas.input));
 
     while(true){
         // process input from output class
