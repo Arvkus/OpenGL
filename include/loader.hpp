@@ -85,66 +85,87 @@ namespace Loader{
                 unsigned short index_mesh = node["mesh"];
 
                 // loop through all primitives TODO
-                json primitives = (*Loader::file_data)["meshes"][index_mesh]["primitives"][0];
-
-                unsigned short index_position = primitives["attributes"]["POSITION"]; // 4
-                unsigned short index_normal = primitives["attributes"]["NORMAL"]; // 5
-                unsigned short index_texcoord = primitives["attributes"]["TEXCOORD_0"]; // 6
-                unsigned short index_indices = primitives["indices"]; // 3
-                // TODO: material
-
-                int offset, length;
                 Mesh mesh = Mesh();
+                json primitives = (*Loader::file_data)["meshes"][index_mesh]["primitives"];
 
-                std::vector<glm::vec3> positions;
-                std::vector<glm::vec3> normals;
-                std::vector<glm::vec2> texcoords;
-
-                //----------------------------------------------------
-                // construct mesh primitives from buffer
-                //----------------------------------------------------
-                validate_data<glm::vec3>(index_position, &offset, &length);
-
-                for(int i = 0; i < length; i++){
-                    glm::vec3 vec(0.0);
-                    std::memcpy(&vec, (file_buffer + offset + i*3*4), 3*4);
-                    positions.push_back(vec);
-                }
-                //----------------------------------------------------
-                validate_data<glm::vec3>(index_normal, &offset, &length);
-
-                for(int i = 0; i < length; i++){
-                    glm::vec3 vec(0.0);
-                    std::memcpy(&vec, (file_buffer + offset + i*3*4), 3*4);
-                    normals.push_back(vec);
-                }
-                //----------------------------------------------------
-                validate_data<glm::vec2>(index_texcoord, &offset, &length);
-
-                for(int i = 0; i < length; i++){
-                    glm::vec3 vec(1.0);
-                    std::memcpy(&vec, (file_buffer + offset + i*2*4), 2*4);
-                    texcoords.push_back(vec);
-                }
-                //----------------------------------------------------
-                validate_data<unsigned short>(index_indices, &offset, &length);
-
-                for(int i = 0; i < length; i++){
-                    unsigned short ind;
-                    std::memcpy(&ind, (file_buffer + offset + i*1*2), 1*2);
-                    mesh.indices.push_back(ind);
+                if( (*Loader::file_data)["meshes"][index_mesh].find("name") != (*Loader::file_data)["meshes"][index_mesh].end() ){
+                    mesh.name = (*Loader::file_data)["meshes"][index_mesh]["name"]; // get name
                 }
 
-                //----------------------------------------------------
-                // construct vertices
-                if(positions.size() == normals.size() && normals.size() == texcoords.size()){
-                    for(unsigned int i = 0; i < positions.size(); i++){
-                        mesh.vertices.push_back( Vertex(positions[i], normals[i], texcoords[i]));
+                std::cout<< mesh.name << ": \n";
+                
+                //https://community.khronos.org/t/questions-about-multiple-primitives-per-mesh-in-gltf-file/104013/2
+                for(json primitive : primitives){
+                    Mesh primitive_mesh = Mesh();
+
+                    unsigned short index_position = primitive["attributes"]["POSITION"]; // 4
+                    unsigned short index_normal = primitive["attributes"]["NORMAL"]; // 5
+                    unsigned short index_texcoord = primitive["attributes"]["TEXCOORD_0"]; // 6
+                    unsigned short index_indices = primitive["indices"]; // indices can be null
+                    // primitives can have COLOR_0 value, vertex color 
+                    // TODO: material
+
+                    int offset, length;
+
+
+                    std::vector<glm::vec3> positions;
+                    std::vector<glm::vec3> normals;
+                    std::vector<glm::vec2> texcoords;
+
+                    //----------------------------------------------------
+                    // construct mesh primitives from buffer
+                    //----------------------------------------------------
+                    validate_data<glm::vec3>(index_position, &offset, &length);
+
+                    for(int i = 0; i < length; i++){
+                        glm::vec3 vec(0.0);
+                        std::memcpy(&vec, (file_buffer + offset + i*3*4), 3*4);
+                        positions.push_back(vec);
                     }
-                }else{
-                    throw std::runtime_error("Vertex primitive data length is not equal.");
-                }
-                // end of primitives loop
+                    //----------------------------------------------------
+                    validate_data<glm::vec3>(index_normal, &offset, &length);
+
+                    for(int i = 0; i < length; i++){
+                        glm::vec3 vec(0.0);
+                        std::memcpy(&vec, (file_buffer + offset + i*3*4), 3*4);
+                        normals.push_back(vec);
+                    }
+                    //----------------------------------------------------
+                    validate_data<glm::vec2>(index_texcoord, &offset, &length);
+
+                    for(int i = 0; i < length; i++){
+                        glm::vec3 vec(1.0);
+                        std::memcpy(&vec, (file_buffer + offset + i*2*4), 2*4);
+                        texcoords.push_back(vec);
+                    }
+                    //----------------------------------------------------
+                    validate_data<unsigned short>(index_indices, &offset, &length);
+
+
+                    for(int i = 0; i < length; i++){
+                        unsigned short ind;
+                        std::memcpy(&ind, (file_buffer + offset + i*1*2), 1*2);
+                        primitive_mesh.indices.push_back(ind );
+                    }
+
+                    //----------------------------------------------------
+                    // construct vertices
+                    if(positions.size() == normals.size() && normals.size() == texcoords.size()){
+                        for(unsigned int i = 0; i < positions.size(); i++){
+                            primitive_mesh.vertices.push_back( Vertex(positions[i], normals[i], texcoords[i]));
+                        }
+                    }else{
+                        throw std::runtime_error("Vertex primitive data length is not equal.");
+                    }
+
+                    primitive_mesh.setupMesh(); // generate opengl callss
+                    mesh.children.push_back(primitive_mesh);
+
+                    std::cout<<"  primitive \n";
+
+                } // end of primitives loop
+
+
                 /*
                 for(unsigned int i = 0; i < positions.size(); i++) printm(positions[i]);
                 std::cout<<std::endl;
@@ -159,10 +180,8 @@ namespace Loader{
                 //----------------------------------------------------
                 // construct Mesh/Node information
                 //----------------------------------------------------
+             
 
-                if( (*Loader::file_data)["meshes"][index_mesh].find("name") != (*Loader::file_data)["meshes"][index_mesh].end() ){
-                    mesh.name = (*Loader::file_data)["meshes"][index_mesh]["name"]; // get name
-                }
 
                 if(node.find("translation") != node.end()){
                     mesh.position( glm::vec3(
@@ -195,10 +214,10 @@ namespace Loader{
                     build_meshes(&(mesh.children) ,node["children"]);
                 }
 
-                mesh.setupMesh();
+                mesh.setupMesh(); // generate opengl callss
                 (*container).push_back(mesh);
 
-
+               
             }
 
         }

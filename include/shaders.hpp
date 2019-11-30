@@ -72,17 +72,17 @@ public:
         return this->error;
     }
     //----------------------------------------------------------------------
-    Shader_program(){
+    Shader_program(const char *vertex_src, const char *fragment_src){
 
         // create shader objects
         unsigned int vertex = glCreateShader(GL_VERTEX_SHADER);
         unsigned int fragment = glCreateShader(GL_FRAGMENT_SHADER);
 
-        shader_source(vertex,"shaders/vertex.glsl");
+        shader_source(vertex, vertex_src);
         glCompileShader(vertex);
         check_errors(vertex, "VERTEX");
 
-        shader_source(fragment,"shaders/fragment.glsl");
+        shader_source(fragment, fragment_src);
         glCompileShader(fragment);
         check_errors(fragment, "FRAGMENT");
 

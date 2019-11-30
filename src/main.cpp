@@ -19,13 +19,17 @@
 // matrix[ column ][ row ] // with j,i printing
 
 // 3. mesh texture / material
-// 6. fix camera
-
+// 5. deconstruct matrix bug?
+// 6. camera lookAt in world space
+// 7. model/mesh deletion
+// 8. UI
 
 
 // 7. separate render loop / engine loop
 // 8. vertex interpolation
 
+//https://github.com/if1live/cef-gl-example/blob/master/cefsimple/main.cpp
+//https://github.com/andmcgregor/cefgui
 
 glm::vec3 get_mouse_direction(Canvas *canvas, glm::mat4 proj, glm::mat4 view){
     // http://antongerdelan.net/opengl/raycasting.html
@@ -54,13 +58,22 @@ int main(int argc, char *argv[]) {
 
     Canvas canvas = Canvas();
     Camera camera = Camera();
-    Shader_program sp = Shader_program();
+
+    Shader_program sps[] = {
+        Shader_program("shaders/normal/vertex.glsl", "shaders/normal/fragment.glsl"),
+        Shader_program("shaders/material/vertex.glsl", "shaders/material/fragment.glsl"),
+    };
+
+    
+    Model cursor = Loader::model_from_glb("models/crate.glb");
+    Model cube = Loader::model_from_glb("models/cube.glb");
+    Model car = Loader::model_from_glb("models/car.glb");
 
     Model complex = Loader::model_from_glb("models/complex.glb");
-    Model cursor = Loader::model_from_glb("models/cube.glb");
-    Model cube = Loader::model_from_glb("models/car.glb");
+   
 
-    cube.size( glm::vec3(.2,.2,.2) );
+    car.size( glm::vec3(.2,.2,.2) );
+
     cursor.size( glm::vec3(.2,.2,.2) );
     complex.position( glm::vec3(0,0,10) );
     /*
@@ -77,7 +90,7 @@ int main(int argc, char *argv[]) {
 
     glm::vec3 angle(0.0);
 
-    Game game = Game(&cube, &(canvas.input));
+    Game game = Game(&car, &(canvas.input));
 
     while(true){
         // process input from output class
@@ -97,7 +110,7 @@ int main(int argc, char *argv[]) {
 
         // process calculations
 
-        //camera.move( canvas.input );
+        camera.move( canvas.input );
         view = camera.view();
         proj = glm::perspective(glm::radians(45.0f), canvas.get_x()/canvas.get_y(), 0.1f, 100.0f);
 
@@ -106,20 +119,22 @@ int main(int argc, char *argv[]) {
         
         game.drive();
 
-
-
         // draw
         glClearColor(0 , .6 , .5, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        sp.use();
-        sp.set_uniform("projection", proj);
-        sp.set_uniform("view", view);
-        sp.set_uniform("model", model);
 
-        cube.draw(sp);
-        complex.draw(sp);
-        cursor.draw(sp);
+        
+        int current_sp = (canvas.input.num - 1) % (sizeof(sps)/sizeof(sps[0]));
+        sps[current_sp].use();
+        sps[current_sp].set_uniform("projection", proj);
+        sps[current_sp].set_uniform("view", view);
+        sps[current_sp].set_uniform("model", model);
+        sps[current_sp].set_uniform("eye", model);
+
+        car.draw(&sps[current_sp]);
+        complex.draw(&sps[current_sp]);
+        cursor.draw(&sps[current_sp]);
 
 
         // poll events

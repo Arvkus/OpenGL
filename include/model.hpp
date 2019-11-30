@@ -23,7 +23,7 @@ private:
     */
 
     void construct_matrix(){
-        //  rotate, translate, scale
+        // translate, rotate, scale
         glm::mat4 matrix = glm::mat4(1.0);
         matrix = glm::translate(matrix, _position); // translate
         matrix = matrix * glm::toMat4(_quaternion); // rotate
@@ -41,6 +41,8 @@ private:
 
         this->_size = size;
         this->_position = glm::vec3(m[3][0], m[3][1], m[3][2]);
+        std::cout<<"deconstructed: ";
+        printm(_position);
 
         // normalize rotaions
         m[0][0] /= size_x;
@@ -107,6 +109,29 @@ class Texture{
     std::string type;
 };
 
+//metallic-roughness material model
+// base color / metal / rough / emissive / occlusion / normal
+// https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#materials
+class Material{
+    std::string name;
+    bool double_sided = true;
+
+    glm::vec4 base_color_factor = glm::vec4(0.0, 0.0, 0.0, 1.0);
+    float metalic_factor = 1.0;
+    float roughness_factor = 0.0;
+
+    Texture base_color_texture; // factor * texture * vertex = color
+    Texture metallic_roughness_texture; // if null, 1.0
+
+    // bidirectional reflectance distribution function (BRDF)  ????
+    
+    // normalTexture (scale index, texcoord)
+    // occlusionTexture
+    // emissiveTexture
+    // emissive factor
+
+};
+
 //------------------------------------------------------------------------------
 
 class Mesh : public Orientation{
@@ -146,7 +171,7 @@ public:
         glEnableVertexAttribArray(2);
     }
 
-    void draw(Shader_program sp, glm::mat4 parent_cframe){
+    void draw(Shader_program *sp, glm::mat4 parent_cframe){
         glBindVertexArray(VAO);
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, 0);
@@ -156,7 +181,7 @@ public:
 
             glm::mat4 relative_cframe = parent_cframe * mesh.matrix();
 
-            sp.set_uniform("model", relative_cframe );
+            sp->set_uniform("model", relative_cframe );
             mesh.draw(sp, relative_cframe );
         }
     }
@@ -172,14 +197,14 @@ public:
     std::string name;
     std::vector<Mesh> meshes;
 
-    void draw(Shader_program sp){
+    void draw(Shader_program *sp){
         for(Mesh mesh : meshes){
             
             // relative position (matrix) to model
             glm::mat4 relative_cframe = this->matrix() * mesh.matrix();
 
 
-            sp.set_uniform("model", relative_cframe );
+            sp->set_uniform("model", relative_cframe );
             mesh.draw(sp, relative_cframe );
         }
     }
@@ -214,7 +239,7 @@ public:
     }
 
     glm::vec3 origin = glm::vec3(0.0); 
-    float speed = .1;
+    float speed = 0;
     float distance = 30;
     int pitch = -45; // vertical (rotate on X)
     int yaw   = 60; // horizontal (rotate on Y)

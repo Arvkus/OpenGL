@@ -83,6 +83,10 @@ public:
                 if(event.key.keysym.sym == 'a') this->input.a = true;
                 if(event.key.keysym.sym == 's') this->input.s = true;
                 if(event.key.keysym.sym == 'd') this->input.d = true;
+
+                if(event.key.keysym.sym > '0' && event.key.keysym.sym <= '9' ){
+                    this->input.num = event.key.keysym.sym - 48;
+                }
             }
 
             if(event.type == SDL_KEYUP){

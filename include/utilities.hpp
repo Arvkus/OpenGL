@@ -36,6 +36,8 @@ struct Input{
     bool click_middle = false;
     bool click_right = false;
 
+    int num = '1';
+
 };
 
 //----------------------------------------------------------------------

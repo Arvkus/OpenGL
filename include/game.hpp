@@ -29,7 +29,7 @@ public:
 
 
         car->rotation( glm::vec3(0,angle,0) );
-        car->position( car->position() + glm::vec3(x,0,y) );
+        car->position( car->position() - glm::vec3(x,0,y) );
     }
 
 
