@@ -39,6 +39,18 @@ struct Input{
     int num = '1';
 
 };
+//----------------------------------------------------------------------
+
+enum TextureType{
+    diffuse, // color
+    normal,
+    metallic,
+    rougness,
+    AO, // ambient occlusion
+
+    bump, // ??
+    albedo, // ??
+};
 
 //----------------------------------------------------------------------
 // print vectors and matrices

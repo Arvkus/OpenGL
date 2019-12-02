@@ -67,7 +67,6 @@ int main(int argc, char *argv[]) {
     
     Model complex = Loader::model_from_glb("models/complex.glb");
 
-
     //----------------------------------------------
     glm::mat4 proj = glm::mat4(1.0);
     glm::mat4 view = glm::mat4(1.0); //glm::translate(glm::mat4(1.0), glm::vec3(0.0, 0.0, -10.0)); 
@@ -80,19 +79,6 @@ int main(int argc, char *argv[]) {
     while(true){
         // process input from output class
 
-        if (canvas.input.hold_left){
-            glm::vec3 dir = get_mouse_direction(&canvas, proj, camera.view());
-            
-            glm::mat4 view = camera.matrix();
-            glm::vec3 cam = glm::vec3( view[3][0], view[3][1], view[3][2] );
-
-            float angle = glm::acos (glm::dot(dir, glm::vec3(0,-1,0)));
-            float len = cam.y / glm::cos(angle);
-
-            glm::vec3 pos = cam + dir*len;
-            cursor.position( pos );
-        }
-
         // process calculations
 
         camera.move( canvas.input );
@@ -100,9 +86,6 @@ int main(int argc, char *argv[]) {
         proj = glm::perspective(glm::radians(45.0f), canvas.get_x()/canvas.get_y(), 0.1f, 100.0f);
 
         complex.rotation( angle += glm::vec3(0,0,1) ); //= 
-
-        
-        game.drive();
 
         // draw
         glClearColor(0 , .6 , .5, 1.0);
@@ -117,9 +100,7 @@ int main(int argc, char *argv[]) {
         sps[current_sp].set_uniform("model", model);
         sps[current_sp].set_uniform("eye", model);
 
-        car.draw(&sps[current_sp]);
         complex.draw(&sps[current_sp]);
-        cursor.draw(&sps[current_sp]);
 
 
         // poll events

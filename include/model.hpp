@@ -105,14 +105,17 @@ public:
 //------------------------------------------------------------------------------
 
 class Texture{
+public:
     unsigned int id;
-    std::string type;
+    TextureType type;
+    const char *image_binary;
 };
 
 //metallic-roughness material model
 // base color / metal / rough / emissive / occlusion / normal
 // https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#materials
-class Material{
+class Material{ // TODO: define default values
+public:
     std::string name;
     bool double_sided = true;
 
@@ -120,8 +123,14 @@ class Material{
     float metalic_factor = 1.0;
     float roughness_factor = 0.0;
 
+    std::vector<Texture> textures;
+
+    // move textures to vector?
+    /*
     Texture base_color_texture; // factor * texture * vertex = color
     Texture metallic_roughness_texture; // if null, 1.0
+    Texture normal_texture;
+    */
 
     // bidirectional reflectance distribution function (BRDF)  ????
     
@@ -143,7 +152,9 @@ public:
 
     std::vector<Vertex> vertices;
     std::vector<unsigned short> indices;
-    std::vector<Texture> textures;
+    
+    Material material;
+    //std::vector<Texture> textures;
 
     std::vector<Mesh> children;
 
@@ -169,6 +180,11 @@ public:
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
         glEnableVertexAttribArray(2);
+
+
+        for(Texture tex : material.textures){
+            std::cout<<tex.type<<std::endl;
+        }
     }
 
     void draw(Shader_program *sp, glm::mat4 parent_cframe){

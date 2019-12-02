@@ -71,6 +71,38 @@ namespace Loader{
         }
 
         //----------------------------------------------------------------------
+
+        std::string validate_image(unsigned short index_texture, int *offset, int *length){
+           // pbr texture -> textures[i] -> images[i] -> bufferViews[i] -> buffers[i]   
+            try{
+                unsigned short index_image = (*Loader::file_data)["textures"][index_texture]["source"]; // source can be null
+                json image = (*Loader::file_data)["images"][index_image];
+
+                unsigned short index_bufferView = image["bufferView"];
+                json bufferView = (*Loader::file_data)["bufferViews"][index_bufferView];
+
+                //unsigned short index_buffer = bufferView["buffer"];
+                //json buffer = (*Loader::file_data)["buffers"][index_buffer];
+
+                //-------------------------------------------------
+
+                //std::string mime_type = image["mimeType"];
+                *offset = bufferView["byteOffset"];
+                *length = bufferView["byteLength"];
+
+                return image["mimeType"];
+                
+                //-------------------------------------------------
+
+            }catch(json::exception& e){
+                std::cout<<"Failed to get image: " << e.what() << "\n";
+                
+            }
+
+            return "void";
+        }
+
+        //----------------------------------------------------------------------
         void build_meshes(std::vector<Mesh> *container, json list){
             // PROCESS ALL THE DATA
             // buffer - binary byte data
@@ -84,7 +116,6 @@ namespace Loader{
 
                 unsigned short index_mesh = node["mesh"];
 
-                // loop through all primitives TODO
                 Mesh mesh = Mesh();
                 json primitives = (*Loader::file_data)["meshes"][index_mesh]["primitives"];
 
@@ -103,18 +134,16 @@ namespace Loader{
                     unsigned short index_texcoord = primitive["attributes"]["TEXCOORD_0"]; // 6
                     unsigned short index_indices = primitive["indices"]; // indices can be null
                     // primitives can have COLOR_0 value, vertex color 
-                    // TODO: material
 
                     int offset, length;
-
 
                     std::vector<glm::vec3> positions;
                     std::vector<glm::vec3> normals;
                     std::vector<glm::vec2> texcoords;
 
                     //----------------------------------------------------
-                    // construct mesh primitives from buffer
-                    //----------------------------------------------------
+                    // get vertex data from buffer
+
                     validate_data<glm::vec3>(index_position, &offset, &length);
 
                     for(int i = 0; i < length; i++){
@@ -141,7 +170,6 @@ namespace Loader{
                     //----------------------------------------------------
                     validate_data<unsigned short>(index_indices, &offset, &length);
 
-
                     for(int i = 0; i < length; i++){
                         unsigned short ind;
                         std::memcpy(&ind, (file_buffer + offset + i*1*2), 1*2);
@@ -150,6 +178,7 @@ namespace Loader{
 
                     //----------------------------------------------------
                     // construct vertices
+
                     if(positions.size() == normals.size() && normals.size() == texcoords.size()){
                         for(unsigned int i = 0; i < positions.size(); i++){
                             primitive_mesh.vertices.push_back( Vertex(positions[i], normals[i], texcoords[i]));
@@ -157,7 +186,80 @@ namespace Loader{
                     }else{
                         throw std::runtime_error("Vertex primitive data length is not equal.");
                     }
+                    //----------------------------------------------------
+                    // construct material
+                    Material material = Material();
+                    if(primitive.find("material") != primitive.end()){
+                        unsigned short index_material = primitive["material"];
 
+                        
+                        json material_data = (*Loader::file_data)["materials"][index_material];
+
+                        material.name = material_data["name"];
+                        material.double_sided = material_data["doubleSided"];
+
+                        // pbr
+                        json pbr = material_data["pbrMetallicRoughness"];
+                        for (json::iterator it = pbr.begin(); it != pbr.end(); ++it) {
+
+                            if(it.key() == "baseColorFactor"){ // color
+                                material.base_color_factor = glm::vec4(
+                                    (float)(it.value()[0]),
+                                    (float)(it.value()[1]),
+                                    (float)(it.value()[2]),
+                                    (float)(it.value()[3])
+                                );
+                            } else if(it.key() == "metallicFactor"){
+                                material.metalic_factor = it.value();
+                            } else if(it.key() == "roughnessFactor"){
+                                material.roughness_factor = it.value();
+                            } else if(it.key() == "baseColorTexture"){ // color
+                                // pbr texture -> textures[i] -> images[i] -> bufferViews[i] -> buffers[i]
+
+                                unsigned short index_texture = it.value()["index"];
+                                std::string mime_type = validate_image(index_texture, &offset, &length);
+                                if(mime_type != "void"){
+                                    // texture generation
+                                    std::cout<<mime_type<<std::endl;
+
+                                    Texture tex = Texture();
+                                    tex.type = TextureType::diffuse;
+
+                                    glGenTextures(1, &tex.id);
+                                    glBindTexture(GL_TEXTURE_2D, tex.id);
+
+                                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
+                                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+                                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+                                    int width, height, nrChannels;
+                                    unsigned char *img_data = stbi_load_from_memory((unsigned char*)(file_buffer + offset), length, &width, &height, &nrChannels, 0);
+                                    //stbi_load("container.jpg", &width, &height, &nrChannels, 0);
+
+                                    if(img_data){
+                                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, img_data);
+                                        glGenerateMipmap(GL_TEXTURE_2D);
+                                        material.textures.push_back(tex);
+                                    }else{
+                                        std::cout<< "Failed to load image\n";
+                                    }
+                                    stbi_image_free(img_data);
+
+                                }
+
+
+                            }
+
+                            //std::cout << it.key() << " : " << it.value() << "\n";
+
+
+
+                        }// end of PBR
+                    }            
+
+                    //----------------------------------------------------
+                    primitive_mesh.material = material;
                     primitive_mesh.setupMesh(); // generate opengl callss
                     mesh.children.push_back(primitive_mesh);
 
@@ -181,8 +283,6 @@ namespace Loader{
                 // construct Mesh/Node information
                 //----------------------------------------------------
              
-
-
                 if(node.find("translation") != node.end()){
                     mesh.position( glm::vec3(
                         node["translation"][0],
@@ -223,6 +323,7 @@ namespace Loader{
         }
 
         //----------------------------------------------------------------------
+
 
     }//-------------------------------------------------------------------------
     //--------------------------------------------------------------------------
@@ -291,7 +392,7 @@ namespace Loader{
             if(chunk_type != 0x004E4942){
                 throw std::runtime_error(std::string("file is corrupted: ") + path);
             }
-
+            
             char* buffer = new char[chunk_length]; // vertex data & images
             GLB.read( buffer, chunk_length);
             GLB.close();
