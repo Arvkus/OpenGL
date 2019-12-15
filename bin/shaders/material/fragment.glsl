@@ -8,6 +8,6 @@ out vec4 FragColor;
 
 void main(){
     //FragColor = vec4(normal, 1.0);
-
-    FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    float grey = (abs(normal.x) * abs(normal.y) * abs(normal.z)) + 0.5f;
+    FragColor = vec4(grey, grey, grey, 1.0);
 }

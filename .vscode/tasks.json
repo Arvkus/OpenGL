@@ -2,24 +2,22 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build project task",
+            "label": "Build C++ project",
             "type": "shell",
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
-            "command": "g++ -Wall -std=c++17 src/* -o bin/main.exe -I include -I dependencies -L lib -lSDL2",
-            
+            "command": ".\\build.bat"
         },
         {
-            "label": "prepare launch task",
+            "label": "Build & run C++ project",
             "type": "shell",
             "group": {
                 "kind": "test",
                 "isDefault": true
             },
-            "command": "",
-            "dependsOn":["build project task"]
+            "command": ".\\build.bat && .\\bin\\main.exe"
         }
     ]
 }
